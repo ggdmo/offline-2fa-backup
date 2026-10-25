@@ -2,6 +2,8 @@
 
 A feature proposal for Bitwarden Authenticator: export your TOTP accounts as a **single, self-contained, password-encrypted HTML file** that shows your current 6-digit codes in any browser, offline, with no app and no server.
 
+**[Open the live demo](https://ggdmo.github.io/offline-2fa-backup/demo/)** (demo password: `Exemplo-2FA-2026!`)
+
 > **Status:** concept and proof of concept. The demo contains fictional accounts only. It has **not** been security-audited. Do not use it for real secrets.
 
 ## The problem
@@ -60,7 +62,11 @@ This would be an optional recovery mechanism. It does not replace Bitwarden's ex
 
 ## Proof of concept
 
-Open [`demo/index.html`](demo/index.html) in a browser. Demo password: `Exemplo-2FA-2026!`. It decrypts a bundled fictional backup locally and shows live TOTP codes.
+**[Open the live demo](https://ggdmo.github.io/offline-2fa-backup/demo/)**
+
+Demo password: `Exemplo-2FA-2026!`
+
+It decrypts a bundled fictional backup locally in your browser and shows live TOTP codes. No network requests. The source code is in the `demo` folder of this repository.
 
 ## Where to discuss
 
