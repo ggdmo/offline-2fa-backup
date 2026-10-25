@@ -1,1 +1,39 @@
-
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Offline 2FA backup: demo</title>
+<style>
+body{font:16px/1.5 system-ui,sans-serif;max-width:560px;margin:32px auto;padding:0 16px;background:#0d1420;color:#e9eef7}
+.box{background:#152034;border:1px solid #2a3a55;border-radius:14px;padding:20px}
+input,button{font:inherit;padding:10px 12px;border-radius:8px;border:1px solid #2a3a55}
+input{background:#0d1420;color:inherit;width:100%;margin:8px 0}button{background:#7c9cff;color:#0a1226;font-weight:700;cursor:pointer}
+.acc{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid #2a3a55}
+.code{font-size:28px;font-weight:800;letter-spacing:.1em;font-variant-numeric:tabular-nums}.m{color:#9fb0c8;font-size:13px}.h{display:none}
+</style></head><body>
+<h1>Offline 2FA backup</h1><p class="m">Demo with fictional accounts. Not audited. No network requests.</p>
+<div class="box"><div id="lock"><form id="f"><label for="pw">Backup password</label><input id="pw" type="password" autocomplete="off" required><button>Unlock</button>
+<p id="err" class="m" role="alert"></p></form><p class="m">Demo password: <code>Exemplo-2FA-2026!</code></p></div>
+<div id="v" class="h"><div id="list"></div><p><button id="lk">Lock</button></p></div></div>
+<script>
+"use strict";
+const SALT="PRFx+gW+qxWsI9urUpIZNA==",IV="q+90bWjXAG1miky6";
+const CT="wj/H20x0+iNfBgkUu3QKZcbuL8JUxFQUTQKeYm/hJ32dj/iPWS8f3xr/8//H45+zo4TlFuG0CEwv7+gFWXpC+VKPmG5Chm2oUbsUTJBd2vS0eCweR9JLxct8gxnY4EW9lk+HsE9cXqtXq4etT7A1qE4+rwGKbrlX7nAWT2/9k7iNvPTWifjikNubEmWHZLszPWHH28rAzBR84FTo05xa9Dcibyl0jmJT0T7e1J+N/ERQtkNMXeb4hFgQlkmmvsIrd64JX2LSfEsRr9yk32VHoC315HScr3JOo69s8g3eB/z397RfAbNzhQVAz4x1xOBcA956vxJWivrAuWyHbwt6mB11u00js+xAlH9xd0JjKW5rlrjh6A==";
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function decrypt(pw){const m=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
+const k=await crypto.subtle.deriveKey({name:"PBKDF2",salt:b64(SALT),iterations:600000,hash:"SHA-256"},m,{name:"AES-GCM",length:256},false,["decrypt"]);
+return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(IV)},k,b64(CT))))}
+function b32(s){const a="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";let b=0,v=0,o=[];for(const ch of s.replace(/=+$/,"").toUpperCase().replace(/\s/g,"")){const x=a.indexOf(ch);if(x<0)throw Error("Base32");v=(v<<5)|x;b+=5;if(b>=8){o.push((v>>(b-8))&255);b-=8}}return new Uint8Array(o)}
+async function totp(sec){const msg=new Uint8Array(8);let n=Math.floor(Date.now()/30000);for(let i=7;i>=0;i--){msg[i]=n&255;n=Math.floor(n/256)}
+const k=await crypto.subtle.importKey("raw",b32(sec),{name:"HMAC",hash:"SHA-1"},false,["sign"]);const h=new Uint8Array(await crypto.subtle.sign("HMAC",k,msg));
+const o=h[h.length-1]&15;return String((((h[o]&127)<<24)|(h[o+1]<<16)|(h[o+2]<<8)|h[o+3])%1000000).padStart(6,"0")}
+const $=i=>document.getElementById(i);let acc=[],tm=null;
+async function tick(){const left=30-Math.floor(Date.now()/1000)%30,r=$("list");r.replaceChildren();
+for(const a of acc){const c=await totp(a.secret),d=document.createElement("div");d.className="acc";
+d.innerHTML='<div><b></b><div class="m"></div></div><div><div class="code"></div><div class="m"></div></div>';
+d.querySelector("b").textContent=a.name;d.querySelector(".m").textContent=a.user;
+d.querySelector(".code").textContent=c.slice(0,3)+" "+c.slice(3);d.querySelectorAll(".m")[1].textContent="New code in "+left+"s";r.appendChild(d)}}
+$("f").addEventListener("submit",async e=>{e.preventDefault();$("err").textContent="Checking password...";
+try{acc=await decrypt($("pw").value);$("err").textContent="";$("lock").classList.add("h");$("v").classList.remove("h");await tick();tm=setInterval(tick,1000)}
+catch(x){acc=[];$("err").textContent="Wrong password or unsupported browser."}});
+$("lk").addEventListener("click",()=>{clearInterval(tm);acc=[];$("pw").value="";$("list").replaceChildren();$("v").classList.add("h");$("lock").classList.remove("h")});
+</script></body></html>
